@@ -9,7 +9,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Data.Nagios.Perfdata(
-    perfdataFromByteString,
+    perfdataFromDefaultTemplate,
     Perfdata,
     MetricList,
     Metric,
@@ -125,7 +125,7 @@ data Perfdata = Perfdata {
     perfMetrics   :: MetricList
 } deriving (Show)
 
-type ParserError = [Char]
+type ParserError = String
 
 -- |Parse the output from a Nagios check.
 parseLine :: S.ByteString -> Result [Item]
@@ -260,8 +260,19 @@ extractPerfdata m = do
 -- |Extract perfdata from a Nagios check result formatted according 
 -- to the Nagios plugin development guidelines[0].
 -- [0] https://nagios-plugins.org/doc/guidelines.html                                           
-perfdataFromByteString :: S.ByteString -> Either ParserError Perfdata
-perfdataFromByteString s = do
+perfdataFromDefaultTemplate :: S.ByteString -> Either ParserError Perfdata
+perfdataFromDefaultTemplate s = do
     getItems s >>= extractPerfdata
   where
     getItems = extractItems . parseLine
+
+checkResultFieldName :: Parser [Char]
+checkResultFieldName = manyTill anyChar (char '=')
+
+checkResultFieldValue :: Parser [Char]
+checkResultFieldValue = manyTill anyChar (string "\\n")
+
+checkResultField :: Parser ([Char],[Char])
+checkResultField = twoTuple `fmap` checkResultFieldName <* (char '=') <*> checkResultFieldValue
+  where
+    twoTuple a b = (a, b)
