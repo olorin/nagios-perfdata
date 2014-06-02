@@ -346,7 +346,8 @@ checkServiceState :: CheckResultMap -> Either ParserError ReturnState
 checkServiceState m = 
     case (M.lookup "return_code" m) of
         Nothing -> Left "return_code not found"
-        Just d  -> case (C.readInteger (C.pack d)) of Nothing -> Left "could not parse return code as an integer"
+        Just d  -> case (C.readInteger (C.pack d)) of 
+            Nothing -> Left "could not parse return code as an integer"
             Just (r,_) -> case (parseReturnCode r) of
                 Nothing -> Left "invalid return code"
                 Just rc  -> Right rc
