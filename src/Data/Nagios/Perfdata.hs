@@ -19,6 +19,8 @@ module Data.Nagios.Perfdata(
     ParserError
 ) where
 
+import Data.Nagios.Perfdata.Metric
+
 import Prelude hiding (takeWhile)
 import Data.Int
 import Control.Monad
@@ -63,87 +65,9 @@ line = many item
 -- |Map from key to value for items in a check result.
 type ItemMap = M.Map S.ByteString S.ByteString
 
--- |Value of a performance metric. We may lose some data converting 
--- to doubles here; this may change in the future.
-data MetricValue = DoubleValue Double | UnknownValue deriving (Show)
-
--- |Value of a min/max/warn/crit threshold, subject to the same 
--- constraints as MetricValue.
-data Threshold = DoubleThreshold Double | NoThreshold deriving (Show)
-
--- |Encapsulates the data in a Nagios performance metric. A service can
--- have several of these.
-data Metric = Metric {
-    metricValue :: MetricValue,
-    metricUOM   :: UOM,
-    warnValue :: Threshold,
-    critValue :: Threshold,
-    minValue :: Threshold,
-    maxValue :: Threshold
-} deriving (Show)
-
--- |List of metrics by metric name.
-type MetricList = [([Char], Metric)]
-
--- |Nagios unit of measurement. NullUnit is an empty string in the 
--- check result; UnknownUOM indicates a failure to parse.
-data UOM = Second | Millisecond | Microsecond | Percent | Byte | Kilobyte | Megabyte | Terabyte | Counter | NullUnit | UnknownUOM
-    deriving (Show)
-
-uomFromString :: [Char] -> UOM
-uomFromString "s" = Second 
-uomFromString "ms" = Millisecond
-uomFromString "us" = Microsecond
-uomFromString "%" = Percent
-uomFromString "b" = Byte
-uomFromString "kb" = Kilobyte
-uomFromString "mb" = Megabyte
-uomFromString "tb" = Terabyte
-uomFromString "c" = Counter
-uomFromString "" = NullUnit
-uomFromString _ = UnknownUOM
-
 -- |Insert items from a list into a map for easy access by key.
 mapItems :: [Item] -> ItemMap
 mapItems = foldl (\m i -> M.insert (label i) (content i) m) M.empty
-
--- |The part of the check result that's specific to service checks, 
--- and doesn't appear in host checks.
-data ServicePerfdata = ServicePerfdata {
-    serviceDescription :: S.ByteString,
-    serviceState       :: ReturnState
-} deriving (Show)
-
--- |The check type, either Service with associated ServiceData or Host.
-data HostOrService = Service ServicePerfdata | Host deriving (Show)
-
-data ReturnState = OKState | WarningState | CriticalState | UnknownState deriving (Show,Enum)
-
-parseReturnCode :: Integral a => a -> Maybe ReturnState
-parseReturnCode 0 = Just OKState
-parseReturnCode 1 = Just WarningState
-parseReturnCode 2 = Just CriticalState
-parseReturnCode 3 = Just UnknownState
-parseReturnCode _ = Nothing
-
-parseReturnState :: S.ByteString -> Maybe ReturnState
-parseReturnState "OK" = Just OKState
-parseReturnState "WARNING" = Just WarningState
-parseReturnState "CRITICAL" = Just CriticalState
-parseReturnState "UNKNOWN" = Just UnknownState
-parseReturnState _ = Nothing
-
--- |Encapsulates all the data in a check result that's relevant to 
--- metrics (we throw away things like the state type of HARD/SOFT). 
-data Perfdata = Perfdata {
-    dataType :: HostOrService,
-    timestamp :: Int64,
-    hostname :: String,
-    hostState :: Maybe S.ByteString,
-    perfMetrics   :: MetricList
-} deriving (Show)
-
-type ParserError = String
 
 -- |Parse the output from a Nagios check.
 parseLine :: S.ByteString -> Result [Item]
@@ -277,7 +201,7 @@ extractPerfdata m = do
 -- to the Nagios plugin development guidelines[0].
 -- [0] https://nagios-plugins.org/doc/guidelines.html                                           
 perfdataFromDefaultTemplate :: S.ByteString -> Either ParserError Perfdata
-perfdataFromDefaultTemplate s = do
+perfdataFromDefaultTemplate s = 
     getItems s >>= extractPerfdata
   where
     getItems = extractItems . parseLine
@@ -302,22 +226,16 @@ checkResult = many (char '"') *> many1 checkResultField <* many (char '"')
 type CheckResultMap = M.Map String String
 
 mapResultItems :: [CheckResultField] -> CheckResultMap
-mapResultItems = foldl (\m i -> M.insert (fst i) (snd i) m) M.empty
+mapResultItems = foldl (flip (uncurry M.insert)) M.empty
 
 extractResultItems :: Result [CheckResultField] -> Either ParserError CheckResultMap
 extractResultItems (Done _ is) = Right $ mapResultItems is
 extractResultItems (Fail _ ctxs err) = Left $ fmtParseError ctxs err
 extractResultItems (Partial f) = extractResultItems (f "")
 
-outputPerfdata :: Parser [Char]
-outputPerfdata = manyTill anyChar (char '|') *> (many anyChar)
-
-nextPower :: Integer -> Integer -> Integer
-nextPower base n = ceiling $ logBase (fromIntegral base) (fromIntegral n)
-
 checkTimestamp :: CheckResultMap -> Either ParserError Int64
 checkTimestamp m = 
-    case (M.lookup "finish_time" m) of
+    case M.lookup "finish_time" m of
         Nothing -> Left "finish_time not found"
         Just t  -> do
             x <- parseDouble (C.pack t)
