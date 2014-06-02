@@ -315,22 +315,20 @@ outputPerfdata = manyTill anyChar (char '|') *> (many anyChar)
 nextPower :: Integer -> Integer -> Integer
 nextPower base n = ceiling $ logBase (fromIntegral base) (fromIntegral n)
 
-readDouble :: S.ByteString -> Either ParserError Double
-readDouble s = case (readInteger s) of
-    Nothing -> Left "could not parse timestamp as double"
-    Just (n,rest) -> case (S.null rest) of
-        True -> Right $ fromInteger n
-        False -> case (readInteger (S.tail rest)) of
-            Nothing -> Right $ fromInteger n
-            Just (m,_) -> Right $ (fromInteger n) + (fromInteger m) / (fromInteger (nextPower 10 m))
-
 checkTimestamp :: CheckResultMap -> Either ParserError Int64
 checkTimestamp m = 
     case (M.lookup "finish_time" m) of
         Nothing -> Left "finish_time not found"
         Just t  -> do
-            x <- readDouble (C.pack t)
+            x <- parseDouble (C.pack t)
             return $ floor  $ x * 1000000
+
+parseDouble :: C.ByteString -> Either ParserError Double
+parseDouble s = complete (parse double s)
+  where
+    complete (Done _ i) = Right i
+    complete (Fail _ ctxs err) = Left $ fmtParseError ctxs err
+    complete (Partial f) = complete (f "")
 
 checkMetrics :: CheckResultMap -> Either ParserError MetricList
 checkMetrics m = 
@@ -348,8 +346,7 @@ checkServiceState :: CheckResultMap -> Either ParserError ReturnState
 checkServiceState m = 
     case (M.lookup "return_code" m) of
         Nothing -> Left "return_code not found"
-        Just d  -> case (C.readInteger (C.pack d)) of
-            Nothing -> Left "could not parse return code as an integer"
+        Just d  -> case (C.readInteger (C.pack d)) of Nothing -> Left "could not parse return code as an integer"
             Just (r,_) -> case (parseReturnCode r) of
                 Nothing -> Left "invalid return code"
                 Just rc  -> Right rc
