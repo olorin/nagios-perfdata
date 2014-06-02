@@ -18,15 +18,20 @@ module Data.Nagios.Perfdata.Metric(
     uomFromString,
     parseReturnCode,
     parseReturnState,
-    ParserError,
+    parseMetricString,
     UOM(..),
     ReturnState(..),
     Threshold(..)
 ) where
 
+import Data.Nagios.Perfdata.Error
+
 import Prelude hiding (takeWhile)
 import Data.Int
 import qualified Data.ByteString as S
+import Control.Monad
+import Control.Applicative
+import Data.Attoparsec.ByteString.Char8
 
 -- |Value of a performance metric. We may lose some data converting 
 -- to doubles here; this may change in the future.
@@ -104,4 +109,46 @@ data Perfdata = Perfdata {
     perfMetrics   :: MetricList
 } deriving (Show)
 
-type ParserError = String
+uom :: Parser UOM
+uom = option "" (many letter_ascii) >>= (return . uomFromString)
+
+metricName :: Parser [Char]
+metricName = (option quote (char quote)) *>
+             (many (satisfy nameChar)) <*
+             (option quote (char quote))
+  where
+    quote = '\''
+    nameChar '\'' = False
+    nameChar '='  = False
+    nameChar _    = True
+
+value :: Parser MetricValue
+value = option UnknownValue (double >>= (return . DoubleValue))
+
+threshold :: Parser Threshold
+threshold = (char8 ';') *> option NoThreshold (double >>= (return . DoubleThreshold))
+
+metric :: Parser ([Char], Metric)
+metric = do
+    name <- metricName
+    void $ char8 '='
+    m    <- Metric `fmap` value <*>
+                          uom <*>
+                          (option NoThreshold threshold) <*>
+                          (option NoThreshold threshold) <*>
+                          (option NoThreshold threshold) <*>
+                          (option NoThreshold threshold) 
+    return (name, m)
+
+metricLine :: Parser MetricList
+metricLine = many (metric <* (skipMany (char8 ';') <* skipSpace))
+
+-- |Parse the component of the check output which contains the 
+-- performance metrics (HOSTPERFDATA or SERVICEPERFDATA). 
+parseMetricString :: S.ByteString -> Either ParserError MetricList
+parseMetricString = completeParse . parse metricLine
+  where
+    completeParse r = case r of
+        Done _ m -> Right m
+        Fail _ ctxs err -> Left $ fmtParseError ctxs err
+        Partial parseRest -> completeParse (parseRest "")

@@ -20,6 +20,7 @@ module Data.Nagios.Perfdata(
 ) where
 
 import Data.Nagios.Perfdata.Metric
+import Data.Nagios.Perfdata.Error
 
 import Prelude hiding (takeWhile)
 import Data.Int
@@ -72,9 +73,6 @@ mapItems = foldl (\m i -> M.insert (label i) (content i) m) M.empty
 -- |Parse the output from a Nagios check.
 parseLine :: S.ByteString -> Result [Item]
 parseLine = parse line
-
-fmtParseError :: [String] -> String -> String
-fmtParseError ctxs err = concat $ err : "\n" : (intercalate "," ctxs) : []
 
 -- |We have no more data to give the parser at this point, so we 
 -- either fail or succeed here and return a ParserError or an ItemMap 
@@ -157,16 +155,6 @@ metric = do
 
 metricLine :: Parser MetricList
 metricLine = many (metric <* (skipMany (char8 ';') <* skipSpace))
-
--- |Parse the component of the check output which contains the 
--- performance metrics (HOSTPERFDATA or SERVICEPERFDATA). 
-parseMetricString :: S.ByteString -> Either ParserError MetricList
-parseMetricString = completeParse . parse metricLine
-  where
-    completeParse r = case r of
-        Done _ m -> Right m
-        Fail _ ctxs err -> Left $ fmtParseError ctxs err
-        Partial parseRest -> completeParse (parseRest "")
 
 parseHostMetrics :: ItemMap -> Either ParserError MetricList
 parseHostMetrics m = case (M.lookup "HOSTPERFDATA" m) of
