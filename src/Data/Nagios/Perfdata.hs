@@ -266,13 +266,19 @@ perfdataFromDefaultTemplate s = do
   where
     getItems = extractItems . parseLine
 
+type CheckResultField = ([Char],[Char])
+
+checkResultSep :: Parser [S.ByteString]
+checkResultSep = many (string "\\n")
+
 checkResultFieldName :: Parser [Char]
 checkResultFieldName = manyTill anyChar (char '=')
 
 checkResultFieldValue :: Parser [Char]
-checkResultFieldValue = manyTill anyChar (string "\\n")
+checkResultFieldValue = manyTill anyChar checkResultSep
 
-checkResultField :: Parser ([Char],[Char])
-checkResultField = twoTuple `fmap` checkResultFieldName <* (char '=') <*> checkResultFieldValue
-  where
-    twoTuple a b = (a, b)
+checkResultField :: Parser CheckResultField
+checkResultField = (,) `fmap` checkResultFieldName <*> checkResultFieldValue
+
+checkResult :: Parser [CheckResultField]
+checkResult = many (char '"') *> many1 checkResultField <* many (char '"')
