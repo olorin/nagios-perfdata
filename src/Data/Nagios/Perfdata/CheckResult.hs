@@ -8,7 +8,7 @@
 
 {-# LANGUAGE OverloadedStrings #-}
 
-module Data.Nagios.Perfdata.PluginOutput(
+module Data.Nagios.Perfdata.CheckResult(
     perfdataFromCheckResult,
 ) where
 
