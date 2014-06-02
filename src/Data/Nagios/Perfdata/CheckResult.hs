@@ -109,6 +109,11 @@ checkType m =
 extractCheckItems :: S.ByteString -> Either ParserError CheckResultMap
 extractCheckItems = extractResultItems . parse checkResult
 
+-- |Takes the output of a Nagios check formatted according to [0] and 
+-- attempts to parse it into a Perfdata object. This should be used, for
+-- example, for consuming perfdata from mod_gearman check_result queues. 
+--
+-- [0]: https://nagios-plugins.org/doc/guidelines.html
 perfdataFromCheckResult :: S.ByteString -> Either ParserError Perfdata
 perfdataFromCheckResult s = do
     m <- extractCheckItems s

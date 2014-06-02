@@ -142,9 +142,15 @@ extractPerfdata m = do
     ms <- parseMetrics typ m
     return $ Perfdata typ t (C.unpack name) (Just state) ms
 
--- |Extract perfdata from a Nagios check result formatted according 
--- to the Nagios plugin development guidelines[0].
--- [0] https://nagios-plugins.org/doc/guidelines.html                                           
+-- |Extract perfdata from a Nagios perfdata item formatted according to 
+-- the default template[0]. This is the format that is used in the 
+-- perfdata spool files and consumed by pnp4nagios. 
+--
+-- [0] Default templates defined in the Nagios source (xdata/xpddefault.h).
+-- Service perfdata: 
+--   "[SERVICEPERFDATA]\t$TIMET$\t$HOSTNAME$\t$SERVICEDESC$\t$SERVICEEXECUTIONTIME$\t$SERVICELATENCY$\t$SERVICEOUTPUT$\t$SERVICEPERFDATA$"
+-- Host perfdata: 
+--   "[HOSTPERFDATA]\t$TIMET$\t$HOSTNAME$\t$HOSTEXECUTIONTIME$\t$HOSTOUTPUT$\t$HOSTPERFDATA$"
 perfdataFromDefaultTemplate :: S.ByteString -> Either ParserError Perfdata
 perfdataFromDefaultTemplate s = 
     getItems s >>= extractPerfdata
