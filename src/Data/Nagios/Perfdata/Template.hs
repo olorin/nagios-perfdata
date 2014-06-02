@@ -36,23 +36,23 @@ separator = count 2 (char8 ':') <?> "separator"
 
 -- |Matches the key in check result output.
 ident :: Parser S.ByteString
-ident = takeWhile uppercase
+ident = takeWhile uppercase <?> "item identifier"
   where
-    uppercase = inClass $ enumFromTo 'A' 'Z'
+    uppercase = inClass $ enumFromTo 'A' 'Z' 
 
 -- |Matches the value in check result output.
 val :: Parser S.ByteString
-val = takeTill isTabOrEol
+val = takeTill isTabOrEol <?> "item value"
   where
     isTabOrEol c = (c == '\t' || c == '\n')
 
 -- |Matches a key::value pair in check result output.
 item :: Parser Item
-item = Item `fmap` ident <* separator <*> val
+item = Item `fmap` ident <* separator <*> val <?> "perfdata item"
 
 -- |Matches a line of key::value pairs (i.e., the result of one check). 
 line :: Parser [Item]
-line = many item
+line = many item <?> "perfdata line"
 
 -- |Map from key to value for items in a check result.
 type ItemMap = M.Map S.ByteString S.ByteString
