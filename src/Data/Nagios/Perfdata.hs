@@ -24,6 +24,7 @@ import Control.Monad
 import Control.Applicative
 import Data.Attoparsec.ByteString.Char8
 import qualified Data.ByteString as S
+import qualified Data.ByteString.Char8 as C
 import Data.ByteString.Char8 (readInteger)
 import Data.Word
 import Data.List hiding (takeWhile)
@@ -295,3 +296,26 @@ extractResultItems (Partial f) = extractResultItems (f "")
 
 outputPerfdata :: Parser [Char]
 outputPerfdata = manyTill anyChar (char '|') *> (many anyChar)
+
+nextPower :: Integer -> Integer -> Integer
+nextPower base n = ceiling $ logBase (fromIntegral base) (fromIntegral n)
+
+readDouble :: S.ByteString -> Either ParserError Double
+readDouble s = case (readInteger s) of
+    Nothing -> Left "could not parse timestamp as double"
+    Just (n,rest) -> case (S.null rest) of
+        True -> Right $ fromInteger n
+        False -> case (readInteger (S.tail rest)) of
+            Nothing -> Right $ fromInteger n
+            Just (m,_) -> Right $ (fromInteger n) + (fromInteger m) / (fromInteger (nextPower 10 m))
+
+outputTimestamp :: CheckResultMap -> Either ParserError Int64
+outputTimestamp m = do
+    case (M.lookup "finish_time" m) of
+        Nothing -> Left "finish_time not found"
+        Just t  -> do
+            x <- readDouble (C.pack t)
+            return $ floor  $ x * 1000000
+
+perfdataFromCheckResult :: S.ByteString -> Either ParserError Perfdata
+perfdataFromCheckResult = undefined
