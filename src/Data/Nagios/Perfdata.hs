@@ -137,8 +137,8 @@ parseReturnState _ = Nothing
 data Perfdata = Perfdata {
     dataType :: HostOrService,
     timestamp :: Int64,
-    hostname :: S.ByteString,
-    hostState :: S.ByteString,
+    hostname :: String,
+    hostState :: Maybe S.ByteString,
     perfMetrics   :: MetricList
 } deriving (Show)
 
@@ -270,7 +270,7 @@ extractPerfdata m = do
     t <- parseTimestamp m
     state <- parseHostState m
     ms <- parseMetrics typ m
-    return $ Perfdata typ t name state ms
+    return $ Perfdata typ t (C.unpack name) (Just state) ms
 
 -- |Extract perfdata from a Nagios check result formatted according 
 -- to the Nagios plugin development guidelines[0].
@@ -360,5 +360,16 @@ checkType m =
             state <-  checkServiceState m
             return $ Service $ ServicePerfdata sd' state
 
+extractCheckItems :: S.ByteString -> Either ParserError CheckResultMap
+extractCheckItems = extractResultItems . (parse checkResult)
+
 perfdataFromCheckResult :: S.ByteString -> Either ParserError Perfdata
-perfdataFromCheckResult = undefined
+perfdataFromCheckResult s = do
+    m <- extractCheckItems s
+    typ <- checkType m
+    name <- checkHostname m
+    t <- checkTimestamp m
+    state <- Right Nothing
+    ms <- checkMetrics m
+    return $ Perfdata typ t name state ms
+
