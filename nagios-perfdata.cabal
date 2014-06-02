@@ -19,7 +19,8 @@ cabal-version:       >=1.10
 library
   exposed-modules: Data.Nagios.Perfdata
   other-modules: Data.Nagios.Perfdata.Metric,
-                 Data.Nagios.Perfdata.Error
+                 Data.Nagios.Perfdata.Error,
+                 Data.Nagios.Perfdata.PluginOutput
   build-depends:       base >=4.6,
                        bytestring, 
                        mtl,
