@@ -330,11 +330,21 @@ parseDouble s = complete (parse double s)
     complete (Fail _ ctxs err) = Left $ fmtParseError ctxs err
     complete (Partial f) = complete (f "")
 
+parsePluginOutput :: S.ByteString -> Either ParserError String
+parsePluginOutput s = complete (parse metricSection s)
+  where
+    complete (Done _ i) = Right i
+    complete (Fail _ ctxs err) = Left $ fmtParseError ctxs err
+    complete (Partial f) = complete (f "")
+    metricSection = manyTill anyChar (char '|') *> many1 anyChar
+
 checkMetrics :: CheckResultMap -> Either ParserError MetricList
 checkMetrics m = 
     case (M.lookup "output" m) of
         Nothing -> Left "check output not found"
-        Just s -> parseMetricString (C.pack s)
+        Just s -> do
+            metricPart <- parsePluginOutput (C.pack s)
+            parseMetricString (C.pack metricPart)
 
 checkHostname :: CheckResultMap -> Either ParserError String
 checkHostname m = 
