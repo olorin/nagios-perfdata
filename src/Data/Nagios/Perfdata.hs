@@ -282,3 +282,16 @@ checkResultField = (,) `fmap` checkResultFieldName <*> checkResultFieldValue
 
 checkResult :: Parser [CheckResultField]
 checkResult = many (char '"') *> many1 checkResultField <* many (char '"')
+
+type CheckResultMap = M.Map String String
+
+mapResultItems :: [CheckResultField] -> CheckResultMap
+mapResultItems = foldl (\m i -> M.insert (fst i) (snd i) m) M.empty
+
+extractResultItems :: Result [CheckResultField] -> Either ParserError CheckResultMap
+extractResultItems (Done _ is) = Right $ mapResultItems is
+extractResultItems (Fail _ ctxs err) = Left $ fmtParseError ctxs err
+extractResultItems (Partial f) = extractResultItems (f "")
+
+outputPerfdata :: Parser [Char]
+outputPerfdata = manyTill anyChar (char '|') *> (many anyChar)
