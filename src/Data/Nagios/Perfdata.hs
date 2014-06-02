@@ -110,11 +110,27 @@ mapItems = foldl (\m i -> M.insert (label i) (content i) m) M.empty
 -- and doesn't appear in host checks.
 data ServicePerfdata = ServicePerfdata {
     serviceDescription :: S.ByteString,
-    serviceState       :: S.ByteString
+    serviceState       :: ReturnState
 } deriving (Show)
 
 -- |The check type, either Service with associated ServiceData or Host.
 data HostOrService = Service ServicePerfdata | Host deriving (Show)
+
+data ReturnState = OKState | WarningState | CriticalState | UnknownState deriving (Show,Enum)
+
+parseReturnCode :: Integral a => a -> Maybe ReturnState
+parseReturnCode 0 = Just OKState
+parseReturnCode 1 = Just WarningState
+parseReturnCode 2 = Just CriticalState
+parseReturnCode 3 = Just UnknownState
+parseReturnCode _ = Nothing
+
+parseReturnState :: S.ByteString -> Maybe ReturnState
+parseReturnState "OK" = Just OKState
+parseReturnState "WARNING" = Just WarningState
+parseReturnState "CRITICAL" = Just CriticalState
+parseReturnState "UNKNOWN" = Just UnknownState
+parseReturnState _ = Nothing
 
 -- |Encapsulates all the data in a check result that's relevant to 
 -- metrics (we throw away things like the state type of HARD/SOFT). 
@@ -143,10 +159,6 @@ extractItems (Done _ is) = Right $ mapItems is
 extractItems (Fail _ ctxs err) = Left $ fmtParseError ctxs err
 extractItems (Partial f) = extractItems (f "")
 
-type MaybeError = Maybe ParserError
-
-type MaybePerfdata = Maybe Perfdata
-
 -- |Called if the check output is from a service check. Returns the 
 -- service-specific component of the perfdata.
 parseServiceData :: ItemMap -> Either ParserError ServicePerfdata
@@ -154,7 +166,9 @@ parseServiceData m = case (M.lookup "SERVICEDESC" m) of
     Nothing -> Left "SERVICEDESC not found" 
     Just desc -> case (M.lookup "SERVICESTATE" m) of
         Nothing -> Left "SERVICESTATE not found"
-        Just sState -> Right $ ServicePerfdata desc sState
+        Just sState -> case (parseReturnState sState) of 
+            Nothing -> Left ("invalid service state " ++ (C.unpack sState))
+            Just st -> Right $ ServicePerfdata desc st
 
 -- |Whether this perfdata item is for a host check or a service check 
 -- (or Nothing on failure to determine). 
@@ -309,13 +323,42 @@ readDouble s = case (readInteger s) of
             Nothing -> Right $ fromInteger n
             Just (m,_) -> Right $ (fromInteger n) + (fromInteger m) / (fromInteger (nextPower 10 m))
 
-outputTimestamp :: CheckResultMap -> Either ParserError Int64
-outputTimestamp m = do
+checkTimestamp :: CheckResultMap -> Either ParserError Int64
+checkTimestamp m = 
     case (M.lookup "finish_time" m) of
         Nothing -> Left "finish_time not found"
         Just t  -> do
             x <- readDouble (C.pack t)
             return $ floor  $ x * 1000000
+
+checkMetrics :: CheckResultMap -> Either ParserError MetricList
+checkMetrics m = 
+    case (M.lookup "output" m) of
+        Nothing -> Left "check output not found"
+        Just s -> parseMetricString (C.pack s)
+
+checkHostname :: CheckResultMap -> Either ParserError String
+checkHostname m = 
+    case (M.lookup "host_name" m) of
+        Nothing -> Left "hostname not found"
+        Just h -> Right h
+
+checkServiceState :: CheckResultMap -> Either ParserError ReturnState
+checkServiceState m = 
+    case (M.lookup "return_code" m) of
+        Nothing -> Left "return_code not found"
+        Just d  -> case (parseReturnState (C.pack d)) of
+            Nothing -> Left "invalid return code"
+            Just r  -> Right r
+
+checkType :: CheckResultMap -> Either ParserError HostOrService
+checkType m = 
+    case (M.lookup "service_description" m) of
+        Nothing -> Right Host
+        Just sd -> do
+            sd' <- Right (C.pack sd)
+            state <-  checkServiceState m
+            return $ Service $ ServicePerfdata sd' state
 
 perfdataFromCheckResult :: S.ByteString -> Either ParserError Perfdata
 perfdataFromCheckResult = undefined
