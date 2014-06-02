@@ -10,6 +10,7 @@
 
 module Data.Nagios.Perfdata(
     perfdataFromDefaultTemplate,
+    perfdataFromCheckResult,
     Perfdata,
     MetricList,
     Metric,
@@ -283,8 +284,8 @@ perfdataFromDefaultTemplate s = do
 
 type CheckResultField = ([Char],[Char])
 
-checkResultSep :: Parser [S.ByteString]
-checkResultSep = many (string "\\n")
+checkResultSep :: Parser String
+checkResultSep = many1 (char '\n')
 
 checkResultFieldName :: Parser [Char]
 checkResultFieldName = manyTill anyChar (char '=')
@@ -340,16 +341,18 @@ checkMetrics m =
 checkHostname :: CheckResultMap -> Either ParserError String
 checkHostname m = 
     case (M.lookup "host_name" m) of
-        Nothing -> Left "hostname not found"
+        Nothing -> Left "host_name not found"
         Just h -> Right h
 
 checkServiceState :: CheckResultMap -> Either ParserError ReturnState
 checkServiceState m = 
     case (M.lookup "return_code" m) of
         Nothing -> Left "return_code not found"
-        Just d  -> case (parseReturnState (C.pack d)) of
-            Nothing -> Left "invalid return code"
-            Just r  -> Right r
+        Just d  -> case (C.readInteger (C.pack d)) of
+            Nothing -> Left "could not parse return code as an integer"
+            Just (r,_) -> case (parseReturnCode r) of
+                Nothing -> Left "invalid return code"
+                Just rc  -> Right rc
 
 checkType :: CheckResultMap -> Either ParserError HostOrService
 checkType m = 
