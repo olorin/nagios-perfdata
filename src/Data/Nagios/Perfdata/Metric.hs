@@ -21,7 +21,8 @@ module Data.Nagios.Perfdata.Metric(
     parseMetricString,
     UOM(..),
     ReturnState(..),
-    Threshold(..)
+    Threshold(..),
+    perfdataServiceDescription
 ) where
 
 import Data.Nagios.Perfdata.Error
@@ -102,12 +103,17 @@ parseReturnState _ = Nothing
 -- |Encapsulates all the data in a check result that's relevant to 
 -- metrics (we throw away things like the state type of HARD/SOFT). 
 data Perfdata = Perfdata {
-    dataType :: HostOrService,
-    timestamp :: Int64,
-    hostname :: String,
-    hostState :: Maybe S.ByteString,
-    perfMetrics   :: MetricList
+    perfdataType :: HostOrService,
+    perfdataTimestamp :: Int64,
+    perfdataHostname :: String,
+    perfdataHostState :: Maybe S.ByteString,
+    perfdataMetrics   :: MetricList
 } deriving (Show)
+
+perfdataServiceDescription :: Perfdata -> S.ByteString
+perfdataServiceDescription datum = case (perfdataType datum) of
+    Host -> "host"
+    Service serviceData -> serviceDescription serviceData
 
 uom :: Parser UOM
 uom = option "" (many letter_ascii) >>= (return . uomFromString)
