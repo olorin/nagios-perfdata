@@ -16,7 +16,8 @@ module Data.Nagios.Perfdata(
     Metric,
     HostOrService,
     ServicePerfdata,
-    ParserError
+    ParserError,
+    perfdataServiceDescription
 ) where
 
 import Data.Nagios.Perfdata.Metric
