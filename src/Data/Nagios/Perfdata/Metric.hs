@@ -22,7 +22,8 @@ module Data.Nagios.Perfdata.Metric(
     UOM(..),
     ReturnState(..),
     Threshold(..),
-    perfdataServiceDescription
+    perfdataServiceDescription,
+    metricValueDefault
 ) where
 
 import Data.Nagios.Perfdata.Error
@@ -37,6 +38,10 @@ import Data.Attoparsec.ByteString.Char8
 -- |Value of a performance metric. We may lose some data converting 
 -- to doubles here; this may change in the future.
 data MetricValue = DoubleValue Double | UnknownValue deriving (Show)
+
+metricValueDefault :: MetricValue -> Double -> Double
+metricValueDefault (DoubleValue x) _ = x
+metricValueDefault UnknownValue d = d
 
 -- |Value of a min/max/warn/crit threshold, subject to the same 
 -- constraints as MetricValue.
