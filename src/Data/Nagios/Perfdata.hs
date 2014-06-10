@@ -11,7 +11,7 @@
 module Data.Nagios.Perfdata(
     perfdataFromCheckResult,
     perfdataFromDefaultTemplate,
-    Perfdata,
+    Perfdata(..),
     MetricList,
     Metric,
     HostOrService,
