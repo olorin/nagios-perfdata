@@ -13,7 +13,7 @@ module Data.Nagios.Perfdata(
     perfdataFromDefaultTemplate,
     Perfdata(..),
     MetricList,
-    Metric,
+    Metric(..),
     HostOrService,
     ServicePerfdata,
     ParserError,
