@@ -7,6 +7,7 @@
 -- redistribute it and/or modify it under the terms of the BSD license.
 
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Data.Nagios.Perfdata.Metric(
     Perfdata(..),
@@ -39,10 +40,6 @@ import Data.Attoparsec.ByteString.Char8
 -- to doubles here; this may change in the future.
 data MetricValue = DoubleValue Double | UnknownValue deriving (Show)
 
-metricValueDefault :: MetricValue -> Double -> Double
-metricValueDefault (DoubleValue x) _ = x
-metricValueDefault UnknownValue d = d
-
 -- |Value of a min/max/warn/crit threshold, subject to the same 
 -- constraints as MetricValue.
 data Threshold = DoubleThreshold Double | NoThreshold deriving (Show)
@@ -57,6 +54,12 @@ data Metric = Metric {
     minValue :: Threshold,
     maxValue :: Threshold
 } deriving (Show)
+
+metricValueDefault :: Metric -> Double -> Double
+metricValueDefault Metric{..} d = case metricValue of
+    UnknownValue -> d
+    DoubleValue x -> x
+
 
 -- |List of metrics by metric name.
 type MetricList = [(String, Metric)]
