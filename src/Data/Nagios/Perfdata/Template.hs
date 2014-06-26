@@ -48,7 +48,9 @@ val = takeTill isTabOrEol <?> "item value"
 
 -- |Matches a key::value pair in check result output.
 item :: Parser Item
-item = Item `fmap` ident <* separator <*> val <?> "perfdata item"
+item = Item `fmap` ident <* separator <*> val <* skipWhile isTab <?> "perfdata item"
+  where
+    isTab = (==) '\t'
 
 -- |Matches a line of key::value pairs (i.e., the result of one check). 
 line :: Parser [Item]
@@ -77,7 +79,7 @@ extractItems (Partial f) = extractItems (f "")
 -- service-specific component of the perfdata.
 parseServiceData :: ItemMap -> Either ParserError ServicePerfdata
 parseServiceData m = case (M.lookup "SERVICEDESC" m) of
-    Nothing -> Left "SERVICEDESC not found" 
+    Nothing -> Left ("SERVICEDESC not found in " ++ show m)
     Just desc -> case (M.lookup "SERVICESTATE" m) of
         Nothing -> Left "SERVICESTATE not found"
         Just sState -> case (parseReturnState sState) of 
