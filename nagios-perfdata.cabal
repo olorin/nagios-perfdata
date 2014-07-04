@@ -29,5 +29,21 @@ library
                        attoparsec
   hs-source-dirs:      src
   default-language:    Haskell2010
-  ghc-options:         -O2
-                       -Wall
+  ghc-options:         -Wall
+                       -Wwarn
+                       -fwarn-tabs
+
+test-suite           perfdata-test
+  hs-source-dirs:    tests
+  main-is:           Perfdata.hs
+  type:              exitcode-stdio-1.0
+  default-language:  Haskell2010
+
+  build-depends:     base >=4.6,
+                     hspec,
+                     bytestring,
+                     nagios-perfdata
+
+  ghc-options:       -Wall
+                     -Wwarn
+                     -fwarn-tabs
