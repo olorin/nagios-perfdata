@@ -56,7 +56,9 @@ checkTimestamp m =
         Nothing -> Left "finish_time not found"
         Just t  -> do
             x <- parseDouble (C.pack t)
-            return $ floor  $ x * 1000000
+            return $ floor  $ x * nanosecondFactor
+  where
+    nanosecondFactor = 1000000000
 
 parseDouble :: C.ByteString -> Either ParserError Double
 parseDouble s = complete (parse double s)
