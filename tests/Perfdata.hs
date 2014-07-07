@@ -4,7 +4,9 @@ module Main where
 
 import Data.Nagios.Perfdata
 import Test.Hspec
+import Test.HUnit
 import Data.ByteString (ByteString)
+import Data.Either.Utils
 
 defaultTemplateData :: ByteString
 defaultTemplateData = 
@@ -12,9 +14,11 @@ defaultTemplateData =
 
 suite :: Spec
 suite =
-    describe "perfdataFromDefaultTemplate" $
-        it "extracts perfdata from Nagios perfdata template" $ do
-            (perfdataFromDefaultTemplate defaultTemplateData) `shouldSatisfy` good
+    describe "perfdataFromDefaultTemplate" $ do
+        it "extracts perfdata from Nagios perfdata template"  $
+            perfdataFromDefaultTemplate defaultTemplateData `shouldSatisfy` good
+        it "extracts timestamp correctly" $
+            (perfdataTimestamp . fromRight $ perfdataFromDefaultTemplate defaultTemplateData) @?= 1388445486000000000
   where
     good (Left _) = False
     good (Right _) = True

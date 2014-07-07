@@ -42,7 +42,9 @@ test-suite           perfdata-test
   build-depends:     base >=4.6,
                      hspec,
                      bytestring,
-                     nagios-perfdata
+                     nagios-perfdata,
+                     HUnit,
+                     MissingH
 
   ghc-options:       -Wall
                      -Wwarn
