@@ -108,7 +108,9 @@ parseTimestamp m = case (M.lookup "TIMET" m) of
     Nothing -> Left "TIMET not found"
     Just t  -> case (readInteger t) of
         Nothing -> Left "Invalid timestamp"
-        Just (n, _) -> Right $ fromInteger n
+        Just (n, _) -> Right $ fromInteger (n * nanosecondFactor)
+  where
+    nanosecondFactor = 1000000000
 
 parseHostState :: ItemMap -> Either ParserError S.ByteString
 parseHostState m = case (M.lookup "HOSTSTATE" m) of
