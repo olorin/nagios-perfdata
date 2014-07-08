@@ -44,7 +44,8 @@ test-suite           perfdata-test
                      bytestring,
                      nagios-perfdata,
                      HUnit,
-                     MissingH
+                     MissingH,
+                     transformers
 
   ghc-options:       -Wall
                      -Wwarn

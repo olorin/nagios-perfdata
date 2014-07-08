@@ -7,6 +7,7 @@ import Test.Hspec
 import Test.HUnit
 import Data.ByteString (ByteString)
 import Data.Either.Utils
+import Control.Monad.IO.Class
 
 defaultTemplateData :: ByteString
 defaultTemplateData = 

@@ -124,7 +124,9 @@ perfdataServiceDescription datum = case (perfdataType datum) of
     Service serviceData -> serviceDescription serviceData
 
 uom :: Parser UOM
-uom = option "" (many letter_ascii) >>= (return . uomFromString)
+uom = option "" (many (satisfy uomChar)) >>= (return . uomFromString)
+  where
+    uomChar = inClass "A-Za-z%"
 
 metricName :: Parser [Char]
 metricName = (option quote (char quote)) *>
@@ -140,7 +142,7 @@ value :: Parser MetricValue
 value = option UnknownValue (double >>= (return . DoubleValue))
 
 threshold :: Parser Threshold
-threshold = (char8 ';') *> option NoThreshold (double >>= (return . DoubleThreshold))
+threshold = char8 ';' *> option NoThreshold (double >>= (return . DoubleThreshold))
 
 metric :: Parser ([Char], Metric)
 metric = do
@@ -148,10 +150,10 @@ metric = do
     void $ char8 '='
     m    <- Metric `fmap` value <*>
                           uom <*>
-                          (option NoThreshold threshold) <*>
-                          (option NoThreshold threshold) <*>
-                          (option NoThreshold threshold) <*>
-                          (option NoThreshold threshold) 
+                          threshold <*>
+                          threshold <*>
+                          threshold <*>
+                          threshold 
     return (name, m)
 
 metricLine :: Parser MetricList
