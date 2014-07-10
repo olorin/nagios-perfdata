@@ -25,4 +25,3 @@ import Data.Nagios.Perfdata.Metric
 import Data.Nagios.Perfdata.Error
 import Data.Nagios.Perfdata.CheckResult
 import Data.Nagios.Perfdata.Template
-

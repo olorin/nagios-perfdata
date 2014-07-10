@@ -19,4 +19,4 @@ import Data.List hiding (takeWhile)
 type ParserError = String
 
 fmtParseError :: [String] -> String -> String
-fmtParseError ctxs err = concat $ err : "\n" : (intercalate "," ctxs) : []
+fmtParseError ctxs err = concat [err, "\n", intercalate "," ctxs]

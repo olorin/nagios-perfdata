@@ -77,7 +77,7 @@ parsePluginOutput s = complete (parse metricSection s)
 
 checkMetrics :: CheckResultMap -> Either ParserError MetricList
 checkMetrics m = 
-    case (M.lookup "output" m) of
+    case M.lookup "output" m of
         Nothing -> Left "check output not found"
         Just s -> do
             metricPart <- parsePluginOutput (C.pack s)
@@ -85,23 +85,23 @@ checkMetrics m =
 
 checkHostname :: CheckResultMap -> Either ParserError String
 checkHostname m = 
-    case (M.lookup "host_name" m) of
+    case M.lookup "host_name" m of
         Nothing -> Left "host_name not found"
         Just h -> Right h
 
 checkServiceState :: CheckResultMap -> Either ParserError ReturnState
 checkServiceState m = 
-    case (M.lookup "return_code" m) of
+    case M.lookup "return_code" m of
         Nothing -> Left "return_code not found"
-        Just d  -> case (C.readInteger (C.pack d)) of 
+        Just d  -> case C.readInteger (C.pack d) of 
             Nothing -> Left "could not parse return code as an integer"
-            Just (r,_) -> case (parseReturnCode r) of
+            Just (r,_) -> case parseReturnCode r of
                 Nothing -> Left "invalid return code"
                 Just rc  -> Right rc
 
 checkType :: CheckResultMap -> Either ParserError HostOrService
 checkType m = 
-    case (M.lookup "service_description" m) of
+    case M.lookup "service_description" m of
         Nothing -> Right Host
         Just sd -> do
             sd' <- Right (C.pack sd)

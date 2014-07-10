@@ -44,7 +44,7 @@ ident = takeWhile uppercase <?> "item identifier"
 val :: Parser S.ByteString
 val = takeTill isTabOrEol <?> "item value"
   where
-    isTabOrEol c = (c == '\t' || c == '\n')
+    isTabOrEol c = c == '\t' || c == '\n'
 
 -- |Matches a key::value pair in check result output.
 item :: Parser Item
@@ -78,62 +78,61 @@ extractItems (Partial f) = extractItems (f "")
 -- |Called if the check output is from a service check. Returns the 
 -- service-specific component of the perfdata.
 parseServiceData :: ItemMap -> Either ParserError ServicePerfdata
-parseServiceData m = case (M.lookup "SERVICEDESC" m) of
+parseServiceData m = case M.lookup "SERVICEDESC" m of
     Nothing -> Left ("SERVICEDESC not found in " ++ show m)
-    Just desc -> case (M.lookup "SERVICESTATE" m) of
+    Just desc -> case M.lookup "SERVICESTATE" m of
         Nothing -> Left "SERVICESTATE not found"
-        Just sState -> case (parseReturnState sState) of 
-            Nothing -> Left ("invalid service state " ++ (C.unpack sState))
+        Just sState -> case parseReturnState sState of 
+            Nothing -> Left ("invalid service state " ++ C.unpack sState)
             Just st -> Right $ ServicePerfdata desc st
 
 -- |Whether this perfdata item is for a host check or a service check 
 -- (or Nothing on failure to determine). 
 parseDataType :: ItemMap -> Either ParserError HostOrService
-parseDataType m = case (M.lookup "DATATYPE" m) of
+parseDataType m = case M.lookup "DATATYPE" m of
     Nothing -> Left "DATATYPE not found"
     Just s -> case s of
         "HOSTPERFDATA" -> Right Host
-        "SERVICEPERFDATA" -> case (parseServiceData m) of
+        "SERVICEPERFDATA" -> case parseServiceData m of
             Left err -> Left err
             Right d -> Right $ Service d
         _                 -> Left "Invalid datatype"
 
 parseHostname :: ItemMap -> Either ParserError S.ByteString
-parseHostname m = case (M.lookup "HOSTNAME" m) of
+parseHostname m = case M.lookup "HOSTNAME" m of
     Nothing -> Left "HOSTNAME not found"
     Just h -> Right h
 
 parseTimestamp :: ItemMap -> Either ParserError Int64
-parseTimestamp m = case (M.lookup "TIMET" m) of
+parseTimestamp m = case M.lookup "TIMET" m of
     Nothing -> Left "TIMET not found"
-    Just t  -> case (readInteger t) of
+    Just t  -> case readInteger t of
         Nothing -> Left "Invalid timestamp"
         Just (n, _) -> Right $ fromInteger (n * nanosecondFactor)
   where
     nanosecondFactor = 1000000000
 
 parseHostState :: ItemMap -> Either ParserError S.ByteString
-parseHostState m = case (M.lookup "HOSTSTATE" m) of
+parseHostState m = case M.lookup "HOSTSTATE" m of
     Nothing -> Left "HOSTSTATE not found"
     Just s -> Right s
 
 parseHostMetrics :: ItemMap -> Either ParserError MetricList
-parseHostMetrics m = case (M.lookup "HOSTPERFDATA" m) of
+parseHostMetrics m = case M.lookup "HOSTPERFDATA" m of
     Nothing -> Left "HOSTPERFDATA not found"
     Just p  -> parseMetricString p
 
 parseServiceMetrics :: ItemMap -> Either ParserError MetricList
-parseServiceMetrics m = case (M.lookup "SERVICEPERFDATA" m) of
+parseServiceMetrics m = case M.lookup "SERVICEPERFDATA" m of
     Nothing -> Left "SERVICEPERFDATA not found"
     Just p  -> parseMetricString p
 
 -- |Given an item map extracted from a check result, parse and return 
 -- the performance metrics (or store an error and return Nothing). 
 parseMetrics :: HostOrService -> ItemMap -> Either ParserError MetricList
-parseMetrics typ m = do
-    case typ of
-        Host -> parseHostMetrics m
-        Service _ -> parseServiceMetrics m
+parseMetrics typ m = case typ of
+     Host -> parseHostMetrics m
+     Service _ -> parseServiceMetrics m
 
 -- |Given an item map extracted from a check result, parse and return 
 -- a Perfdata object.

@@ -119,19 +119,19 @@ data Perfdata = Perfdata {
 } deriving (Show)
 
 perfdataServiceDescription :: Perfdata -> S.ByteString
-perfdataServiceDescription datum = case (perfdataType datum) of
+perfdataServiceDescription datum = case perfdataType datum of
     Host -> "host"
     Service serviceData -> serviceDescription serviceData
 
 uom :: Parser UOM
-uom = option "" (many (satisfy uomChar)) >>= (return . uomFromString)
+uom = liftM uomFromString . option "" $ many (satisfy uomChar)
   where
     uomChar = inClass "A-Za-z%"
 
-metricName :: Parser [Char]
-metricName = (option quote (char quote)) *>
-             (many (satisfy nameChar)) <*
-             (option quote (char quote))
+metricName :: Parser String
+metricName = option quote (char quote) *>
+             many (satisfy nameChar) <*
+             option quote (char quote)
   where
     quote = '\''
     nameChar '\'' = False
@@ -139,12 +139,12 @@ metricName = (option quote (char quote)) *>
     nameChar _    = True
 
 value :: Parser MetricValue
-value = option UnknownValue (double >>= (return . DoubleValue))
+value = option UnknownValue $ liftM DoubleValue double
 
 threshold :: Parser Threshold
-threshold = char8 ';' *> option NoThreshold (double >>= (return . DoubleThreshold))
+threshold = char8 ';' *> option NoThreshold (liftM DoubleThreshold double)
 
-metric :: Parser ([Char], Metric)
+metric :: Parser (String, Metric)
 metric = do
     name <- metricName
     void $ char8 '='
