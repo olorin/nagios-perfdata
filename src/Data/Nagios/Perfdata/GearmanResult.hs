@@ -8,8 +8,8 @@
 
 {-# LANGUAGE OverloadedStrings #-}
 
-module Data.Nagios.Perfdata.CheckResult(
-    perfdataFromCheckResult,
+module Data.Nagios.Perfdata.GearmanResult(
+    perfdataFromGearmanResult,
 ) where
 
 import Data.Nagios.Perfdata.Metric
@@ -38,7 +38,7 @@ checkResultField :: Parser CheckResultField
 checkResultField = (,) `fmap` checkResultFieldName <*> checkResultFieldValue
 
 checkResult :: Parser [CheckResultField]
-checkResult = many (char '"') *> many1 checkResultField <* many (char '"')
+checkResult = skipMany (char '"') *> many1 checkResultField <* skipMany (char '"')
 
 type CheckResultMap = M.Map String String
 
@@ -111,13 +111,15 @@ checkType m =
 extractCheckItems :: S.ByteString -> Either ParserError CheckResultMap
 extractCheckItems = extractResultItems . parse checkResult
 
--- |Takes the output of a Nagios check formatted according to [0] and 
--- attempts to parse it into a Perfdata object. This should be used, for
--- example, for consuming perfdata from mod_gearman check_result queues. 
+-- |Takes the output of a Nagios check formatted according to [0] and
+-- reported by mod_gearman[1],  and attempts to parse it into a Perfdata 
+-- object. This should be used, for example, for consuming perfdata from
+-- mod_gearman check_result queues.
 --
 -- [0]: https://nagios-plugins.org/doc/guidelines.html
-perfdataFromCheckResult :: S.ByteString -> Either ParserError Perfdata
-perfdataFromCheckResult s = do
+-- [1]: https://labs.consol.de/nagios/mod-gearman/
+perfdataFromGearmanResult :: S.ByteString -> Either ParserError Perfdata
+perfdataFromGearmanResult s = do
     m <- extractCheckItems s
     typ <- checkType m
     name <- checkHostname m
@@ -125,4 +127,3 @@ perfdataFromCheckResult s = do
     state <- Right Nothing
     ms <- checkMetrics m
     return $ Perfdata typ t name state ms
-

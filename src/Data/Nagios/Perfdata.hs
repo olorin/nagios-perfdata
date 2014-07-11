@@ -9,7 +9,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Data.Nagios.Perfdata(
-    perfdataFromCheckResult,
+    perfdataFromGearmanResult,
     perfdataFromDefaultTemplate,
     Perfdata(..),
     MetricList,
@@ -23,5 +23,5 @@ module Data.Nagios.Perfdata(
 
 import Data.Nagios.Perfdata.Metric
 import Data.Nagios.Perfdata.Error
-import Data.Nagios.Perfdata.CheckResult
+import Data.Nagios.Perfdata.GearmanResult
 import Data.Nagios.Perfdata.Template

@@ -17,9 +17,9 @@ cpuTemplateData :: ByteString
 cpuTemplateData = 
     "DATATYPE::SERVICEPERFDATA\tTIMET::1388445486\tHOSTNAME::some.example.com\tSERVICEDESC::cpu\tSERVICEPERFDATA::CpuUtilisation=0.00%;;;0;100; CpuUser=1092132c;;;;;\tSERVICESTATE::OK\tHOSTSTATE::OK"
 
-defaultCheckResult :: ByteString
-defaultCheckResult =
-    "Monitoring cluster 'chevalier-01' | cluster_nodes=2;;;;; cluster_master_eligible_nodes=2;;;;; cluster_data_nodes=2;;;;; cluster_active_shards=40;;;;; cluster_relocating_shards=0;;;;; cluster_initialising_shards=0;;;;; cluster_unassigned_shards=0;;;;; cluster_total_shards=40;;;;; storesize=59531193B;;;;; documents=344051;;;;; index_ops=45185399c;;;;; index_time=12068244c;;;;; flush_ops=7334c;;;;; flush_time=1261970c;;;;; throttle_time=3442491c;;;;; index_ops=45185399c;;;;; index_time=12068244c;;;;; delete_ops=3c;;;;; delete_time=2c;;;;; get_ops=34805703c;;;;; get_time=3474984c;;;;; exists_ops=33849630c;;;;; exists_time=3454577c;;;;; missing_ops=956073c;;;;; missing_time=20407c;;;;; query_ops=3647965c;;;;; query_time=1011691c;;;;; fetch_ops=750991c;;;;; fetch_time=77923c;;;;; merge_ops=440c;;;;; refresh_ops=63770c;;;;; refresh_time=2847079c;;;;;"
+defaultModGearmanResult :: ByteString
+defaultModGearmanResult =
+    "\"host_name=kvm33.syd1.anchor.net.au\ncore_start_time=1405044854.0\nstart_time=1405044867.223223\nfinish_time=1405044867.347834\nreturn_code=0\nexited_ok=1\nservice_description=procs\noutput=PROCS OK: 796 processes |procs=796;;\\n\n\n\n\n\""
 
 suite :: Spec
 suite = do
@@ -33,9 +33,9 @@ suite = do
             datum `shouldSatisfy` good
             let metrics = perfdataMetrics . fromRight $ datum
             fst (metrics !! 1) @?= "CpuUser"
-    describe "perfdataFromCheckResult" $
+    describe "perfdataFromModGearmanResult" $
         it "extracts perfdata from Nagios check result"  $
-            perfdataFromCheckResult defaultCheckResult `shouldSatisfy` good
+            perfdataFromGearmanResult defaultModGearmanResult `shouldSatisfy` good
   where
     good (Left _) = False
     good (Right _) = True

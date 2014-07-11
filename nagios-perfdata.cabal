@@ -20,7 +20,7 @@ library
   exposed-modules: Data.Nagios.Perfdata
                    Data.Nagios.Perfdata.Metric,
                    Data.Nagios.Perfdata.Error,
-                   Data.Nagios.Perfdata.CheckResult,
+                   Data.Nagios.Perfdata.GearmanResult,
                    Data.Nagios.Perfdata.Template
   build-depends:       base >=4.6,
                        bytestring, 
