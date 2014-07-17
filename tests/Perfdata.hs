@@ -17,6 +17,10 @@ cpuTemplateData :: ByteString
 cpuTemplateData = 
     "DATATYPE::SERVICEPERFDATA\tTIMET::1388445486\tHOSTNAME::some.example.com\tSERVICEDESC::cpu\tSERVICEPERFDATA::CpuUtilisation=0.00%;;;0;100; CpuUser=1092132c;;;;;\tSERVICESTATE::OK\tHOSTSTATE::OK"
 
+ntpTemplateData :: ByteString
+ntpTemplateData = 
+    "DATATYPE::SERVICEPERFDATA\tTIMET::1404443722\tHOSTNAME::example1\tSERVICEDESC::ntp\tSERVICEPERFDATA::offset=0.001416s;60.000000;120.000000;\tSERVICECHECKCOMMAND::check_ntp_by_nrpe\tHOSTSTATE::UP\tHOSTSTATETYPE::HARD\tSERVICESTATE::OK\tSERVICESTATETYPE::HARD"
+
 defaultModGearmanResult :: ByteString
 defaultModGearmanResult =
     "\"host_name=kvm33.syd1.anchor.net.au\ncore_start_time=1405044854.0\nstart_time=1405044867.223223\nfinish_time=1405044867.347834\nreturn_code=0\nexited_ok=1\nservice_description=procs\noutput=PROCS OK: 796 processes |procs=796;;\\n\n\n\n\n\""
@@ -31,11 +35,22 @@ suite = do
         it "handles empty threshold fields correctly" $ do
             let datum = (perfdataFromDefaultTemplate cpuTemplateData)
             datum `shouldSatisfy` good
+            liftIO . print . show $ datum
             let metrics = perfdataMetrics . fromRight $ datum
             fst (metrics !! 1) @?= "CpuUser"
+        it "handles full threshold fields correctly" $ do
+            let datum = (perfdataFromDefaultTemplate ntpTemplateData)
+            datum `shouldSatisfy` good
+            liftIO . print . show $ datum
+            let metrics = perfdataMetrics . fromRight $ datum
+            fst (metrics !! 0) @?= "offset"
     describe "perfdataFromModGearmanResult" $
-        it "extracts perfdata from Nagios check result"  $
-            perfdataFromGearmanResult defaultModGearmanResult `shouldSatisfy` good
+        it "extracts perfdata from Nagios check result"  $ do
+            let datum = perfdataFromGearmanResult defaultModGearmanResult 
+            datum `shouldSatisfy` good
+            liftIO . print . show $ datum
+            let metrics = perfdataMetrics . fromRight $ datum
+            fst (metrics !! 0) @?= "procs"
   where
     good (Left _) = False
     good (Right _) = True
