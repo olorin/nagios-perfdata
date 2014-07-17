@@ -35,19 +35,21 @@ suite = do
         it "handles empty threshold fields correctly" $ do
             let datum = (perfdataFromDefaultTemplate cpuTemplateData)
             datum `shouldSatisfy` good
+            liftIO . print . show $ datum
             let metrics = perfdataMetrics . fromRight $ datum
             fst (metrics !! 1) @?= "CpuUser"
         it "handles full threshold fields correctly" $ do
             let datum = (perfdataFromDefaultTemplate ntpTemplateData)
             datum `shouldSatisfy` good
+            liftIO . print . show $ datum
             let metrics = perfdataMetrics . fromRight $ datum
             fst (metrics !! 0) @?= "offset"
     describe "perfdataFromModGearmanResult" $
         it "extracts perfdata from Nagios check result"  $ do
             let datum = perfdataFromGearmanResult defaultModGearmanResult 
             datum `shouldSatisfy` good
-            let metrics = perfdataMetrics . fromRight $ datum
             liftIO . print . show $ datum
+            let metrics = perfdataMetrics . fromRight $ datum
             fst (metrics !! 0) @?= "procs"
   where
     good (Left _) = False

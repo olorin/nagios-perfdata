@@ -35,6 +35,7 @@ import qualified Data.ByteString as S
 import Control.Monad
 import Control.Applicative
 import Data.Attoparsec.ByteString.Char8
+import Data.Attoparsec (skip)
 
 -- |Value of a performance metric. We may lose some data converting 
 -- to doubles here; this may change in the future.
@@ -142,7 +143,9 @@ value :: Parser MetricValue
 value = option UnknownValue $ liftM DoubleValue double
 
 threshold :: Parser Threshold
-threshold = char8 ';' *> option NoThreshold (liftM DoubleThreshold double)
+threshold = choice [(char8 ';' *> thresholdValue), thresholdValue]
+  where
+    thresholdValue = option NoThreshold (liftM DoubleThreshold double)
 
 metric :: Parser (String, Metric)
 metric = do
