@@ -33,24 +33,24 @@ suite = do
         it "extracts timestamp correctly" $
             (perfdataTimestamp . fromRight $ perfdataFromDefaultTemplate defaultTemplateData) @?= 1388445486000000000
         it "handles empty threshold fields correctly" $ do
-            let datum = (perfdataFromDefaultTemplate cpuTemplateData)
+            let datum = perfdataFromDefaultTemplate cpuTemplateData
             datum `shouldSatisfy` good
-            liftIO . print . show $ datum
-            let metrics = perfdataMetrics . fromRight $ datum
-            fst (metrics !! 1) @?= "CpuUser"
+            liftIO . print $ datum
+            let _:(metric,_):_ = perfdataMetrics . fromRight $ datum
+            metric @?= "CpuUser"
         it "handles full threshold fields correctly" $ do
-            let datum = (perfdataFromDefaultTemplate ntpTemplateData)
+            let datum = perfdataFromDefaultTemplate ntpTemplateData
             datum `shouldSatisfy` good
-            liftIO . print . show $ datum
-            let metrics = perfdataMetrics . fromRight $ datum
-            fst (metrics !! 0) @?= "offset"
+            liftIO . print $ datum
+            let (metric,_):_ = perfdataMetrics . fromRight $ datum
+            metric @?= "offset"
     describe "perfdataFromModGearmanResult" $
         it "extracts perfdata from Nagios check result"  $ do
             let datum = perfdataFromGearmanResult defaultModGearmanResult 
             datum `shouldSatisfy` good
-            liftIO . print . show $ datum
-            let metrics = perfdataMetrics . fromRight $ datum
-            fst (metrics !! 0) @?= "procs"
+            liftIO . print $ datum
+            let (metric,_):_ = perfdataMetrics . fromRight $ datum
+            metric @?= "procs"
   where
     good (Left _) = False
     good (Right _) = True

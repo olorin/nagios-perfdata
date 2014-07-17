@@ -142,7 +142,8 @@ value :: Parser MetricValue
 value = option UnknownValue $ liftM DoubleValue double
 
 threshold :: Parser Threshold
-threshold = choice [char8 ';' *> thresholdValue, thresholdValue]
+threshold = char8 ';' *> thresholdValue
+            <|> thresholdValue
   where
     thresholdValue = option NoThreshold (liftM DoubleThreshold double)
 
