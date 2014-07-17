@@ -43,8 +43,12 @@ suite = do
             let metrics = perfdataMetrics . fromRight $ datum
             fst (metrics !! 0) @?= "offset"
     describe "perfdataFromModGearmanResult" $
-        it "extracts perfdata from Nagios check result"  $
-            perfdataFromGearmanResult defaultModGearmanResult `shouldSatisfy` good
+        it "extracts perfdata from Nagios check result"  $ do
+            let datum = perfdataFromGearmanResult defaultModGearmanResult 
+            datum `shouldSatisfy` good
+            let metrics = perfdataMetrics . fromRight $ datum
+            liftIO . print . show $ datum
+            fst (metrics !! 0) @?= "procs"
   where
     good (Left _) = False
     good (Right _) = True
