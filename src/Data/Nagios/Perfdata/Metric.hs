@@ -24,7 +24,8 @@ module Data.Nagios.Perfdata.Metric(
     ReturnState(..),
     Threshold(..),
     perfdataServiceDescription,
-    metricValueDefault
+    metricValueDefault,
+    unknownMetricValue
 ) where
 
 import Data.Nagios.Perfdata.Error
@@ -60,6 +61,10 @@ metricValueDefault Metric{..} d = case metricValue of
     UnknownValue -> d
     DoubleValue x -> x
 
+unknownMetricValue :: Metric -> Bool
+unknownMetricValue m = case metricValue m of
+    UnknownValue -> False
+    _ -> True
 
 -- |List of metrics by metric name.
 type MetricList = [(String, Metric)]
