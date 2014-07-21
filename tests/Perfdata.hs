@@ -42,9 +42,13 @@ suite = do
             let datum = perfdataFromDefaultTemplate ntpTemplateData
             datum `shouldSatisfy` good
             liftIO . print $ datum
-            let (metric,m):_ = perfdataMetrics . fromRight $ datum
+            let (metric,_):_ = perfdataMetrics . fromRight $ datum
             metric @?= "offset"
+        it "parses known values correctly" $ do
+            let datum = perfdataFromDefaultTemplate ntpTemplateData
+            let (_,m):_ = perfdataMetrics . fromRight $ datum
             metricValueDefault m (-1.0) @?= 0.001416
+            unknownMetricValue m @?= False
     describe "perfdataFromModGearmanResult" $
         it "extracts perfdata from Nagios check result"  $ do
             let datum = perfdataFromGearmanResult defaultModGearmanResult 
