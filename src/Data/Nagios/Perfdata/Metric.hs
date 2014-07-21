@@ -63,8 +63,8 @@ metricValueDefault Metric{..} d = case metricValue of
 
 unknownMetricValue :: Metric -> Bool
 unknownMetricValue m = case metricValue m of
-    UnknownValue -> False
-    _ -> True
+    UnknownValue -> True
+    _ -> False
 
 -- |List of metrics by metric name.
 type MetricList = [(String, Metric)]
