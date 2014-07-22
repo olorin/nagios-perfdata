@@ -25,7 +25,9 @@ module Data.Nagios.Perfdata.Metric(
     Threshold(..),
     perfdataServiceDescription,
     metricValueDefault,
-    unknownMetricValue
+    unknownMetricValue,
+    isMetricBase,
+    convertMetricToBase
 ) where
 
 import Data.Nagios.Perfdata.Error
@@ -74,9 +76,42 @@ type MetricList = [(String, Metric)]
 -- |Nagios unit of measurement. NullUnit is an empty string in the 
 -- check result; UnknownUOM indicates a failure to parse.
 data UOM = Second | Millisecond | Microsecond | Percent | Byte | Kilobyte | Megabyte | Gigabyte | Terabyte | Counter | NullUnit | UnknownUOM
-    deriving (Show)
+    deriving (Eq)
+
+instance Show UOM where
+    show Second      = "s"
+    show Percent     = "%"
+    show Byte        = "B"
+    show Counter     = "c"
+    show NullUnit    = ""
+    show UnknownUOM  = "?"
+    show uom         = (show $ uomToPrefix uom) ++ (show $ uomToBase uom)
+
+uomFromString :: String -> UOM
+uomFromString "s"  = Second 
+uomFromString "ms" = Millisecond
+uomFromString "us" = Microsecond
+uomFromString "%"  = Percent
+uomFromString "B"  = Byte
+uomFromString "KB" = Kilobyte
+uomFromString "MB" = Megabyte
+uomFromString "GB" = Gigabyte
+uomFromString "TB" = Terabyte
+uomFromString "c"  = Counter
+uomFromString ""   = NullUnit
+uomFromString _    = UnknownUOM
 
 data Prefix = Base | Milli | Micro | Kilo | Mega | Giga | Tera
+    deriving (Eq)
+
+instance Show Prefix where
+    show Base  = ""
+    show Milli = "m"
+    show Micro = "u"
+    show Kilo  = "K"
+    show Mega  = "M"
+    show Giga  = "G"
+    show Tera  = "T"
 
 uomToPrefix :: UOM -> Prefix
 uomToPrefix Second      = Base
@@ -91,7 +126,6 @@ uomToPrefix Terabyte    = Tera
 uomToPrefix Counter     = Base
 uomToPrefix NullUnit    = Base
 uomToPrefix UnknownUOM  = Base
-uomToPrefix _           = error "NYI"
 
 uomToBase :: UOM -> UOM
 uomToBase Second      = Second
@@ -106,7 +140,6 @@ uomToBase Terabyte    = Byte
 uomToBase Counter     = Counter
 uomToBase NullUnit    = NullUnit
 uomToBase UnknownUOM  = UnknownUOM
-uomToBase _           = error "NYI"
 
 prefixToScale :: Prefix -> Double
 prefixToScale Base  = 1
@@ -116,7 +149,6 @@ prefixToScale Kilo  = 1000
 prefixToScale Mega  = 1000000
 prefixToScale Giga  = 1000000000
 prefixToScale Tera  = 1000000000000
-prefixToScale _     = error "NYI"
 
 uomToScale :: UOM -> Double
 uomToScale = prefixToScale . uomToPrefix
@@ -130,18 +162,8 @@ convertMetricToBase m@Metric{..} = m{metricValue = v, metricUOM = uom}
     where
         (v, uom) = convertUnitToBase metricValue metricUOM
 
-uomFromString :: String -> UOM
-uomFromString "s" = Second 
-uomFromString "ms" = Millisecond
-uomFromString "us" = Microsecond
-uomFromString "%" = Percent
-uomFromString "b" = Byte
-uomFromString "kb" = Kilobyte
-uomFromString "mb" = Megabyte
-uomFromString "tb" = Terabyte
-uomFromString "c" = Counter
-uomFromString "" = NullUnit
-uomFromString _ = UnknownUOM
+isMetricBase :: Metric -> Bool
+isMetricBase Metric{..} = metricUOM == uomToBase metricUOM
 
 -- |The part of the check result that's specific to service checks, 
 -- and doesn't appear in host checks.
