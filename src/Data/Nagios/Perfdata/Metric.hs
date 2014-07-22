@@ -37,6 +37,8 @@ import Control.Monad
 import Control.Applicative
 import Data.Attoparsec.ByteString.Char8
 
+
+
 -- |Value of a performance metric. We may lose some data converting 
 -- to doubles here; this may change in the future.
 data MetricValue = DoubleValue Double | UnknownValue deriving (Show)
@@ -71,8 +73,62 @@ type MetricList = [(String, Metric)]
 
 -- |Nagios unit of measurement. NullUnit is an empty string in the 
 -- check result; UnknownUOM indicates a failure to parse.
-data UOM = Second | Millisecond | Microsecond | Percent | Byte | Kilobyte | Megabyte | Terabyte | Counter | NullUnit | UnknownUOM
+data UOM = Second | Millisecond | Microsecond | Percent | Byte | Kilobyte | Megabyte | Gigabyte | Terabyte | Counter | NullUnit | UnknownUOM
     deriving (Show)
+
+data Prefix = Base | Milli | Micro | Kilo | Mega | Giga | Tera
+
+uomToPrefix :: UOM -> Prefix
+uomToPrefix Second      = Base
+uomToPrefix Millisecond = Milli
+uomToPrefix Microsecond = Micro
+uomToPrefix Percent     = Base
+uomToPrefix Byte        = Base
+uomToPrefix Kilobyte    = Kilo
+uomToPrefix Megabyte    = Mega
+uomToPrefix Gigabyte    = Giga
+uomToPrefix Terabyte    = Tera
+uomToPrefix Counter     = Base
+uomToPrefix NullUnit    = Base
+uomToPrefix UnknownUOM  = Base
+uomToPrefix _           = error "NYI"
+
+uomToBase :: UOM -> UOM
+uomToBase Second      = Second
+uomToBase Millisecond = Second
+uomToBase Microsecond = Second
+uomToBase Percent     = Percent
+uomToBase Byte        = Byte
+uomToBase Kilobyte    = Byte
+uomToBase Megabyte    = Byte
+uomToBase Gigabyte    = Byte
+uomToBase Terabyte    = Byte
+uomToBase Counter     = Counter
+uomToBase NullUnit    = NullUnit
+uomToBase UnknownUOM  = UnknownUOM
+uomToBase _           = error "NYI"
+
+prefixToScale :: Prefix -> Double
+prefixToScale Base  = 1
+prefixToScale Milli = 0.001
+prefixToScale Micro = 0.000001
+prefixToScale Kilo  = 1000
+prefixToScale Mega  = 1000000
+prefixToScale Giga  = 1000000000
+prefixToScale Tera  = 1000000000000
+prefixToScale _     = error "NYI"
+
+uomToScale :: UOM -> Double
+uomToScale = prefixToScale . uomToPrefix
+
+convertUnitToBase :: MetricValue -> UOM -> (MetricValue, UOM)
+convertUnitToBase UnknownValue uom = (UnknownValue, uom)
+convertUnitToBase (DoubleValue v) uom = (DoubleValue $ uomToScale uom * v, uomToBase uom)
+
+convertMetricToBase :: Metric -> Metric
+convertMetricToBase m@Metric{..} = m{metricValue = v, metricUOM = uom}
+    where
+        (v, uom) = convertUnitToBase metricValue metricUOM
 
 uomFromString :: String -> UOM
 uomFromString "s" = Second 
