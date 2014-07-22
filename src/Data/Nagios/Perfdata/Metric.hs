@@ -43,7 +43,7 @@ import Data.Attoparsec.ByteString.Char8
 
 -- |Value of a performance metric. We may lose some data converting 
 -- to doubles here; this may change in the future.
-data MetricValue = DoubleValue Double | UnknownValue deriving (Show)
+data MetricValue = DoubleValue Double | UnknownValue deriving (Show, Eq)
 
 -- |Value of a min/max/warn/crit threshold, subject to the same 
 -- constraints as MetricValue.

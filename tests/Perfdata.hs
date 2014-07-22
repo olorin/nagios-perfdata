@@ -3,6 +3,7 @@
 module Main where
 
 import Data.Nagios.Perfdata
+import Data.Nagios.Perfdata.Metric
 import Test.Hspec
 import Test.HUnit
 import Data.ByteString (ByteString)
@@ -56,9 +57,34 @@ suite = do
             liftIO . print $ datum
             let (metric,_):_ = perfdataMetrics . fromRight $ datum
             metric @?= "procs"
+    describe "UOM conversions+parsing" $ do
+        it "converts all strings to UOMs correctly" $ do
+            map uomFromString testStrings @?= testUOMs
+        it "converts all UOMs to strings correctly" $ do
+            let len = length testUOMs - 2
+            map show (take len testUOMs) @?= (take len testStrings)
+            show UnknownUOM @?= "?"
+        it "correctly verifies when metrics use a base SI unit" $ do
+            (isMetricBase $ simpleMetric (DoubleValue 42.00) Second     ) @?= True
+            (isMetricBase $ simpleMetric (DoubleValue 12.34) Millisecond) @?= False
+            (isMetricBase $ simpleMetric (DoubleValue 52.13) Byte       ) @?= True
+            (isMetricBase $ simpleMetric (DoubleValue 52.13) Counter    ) @?= True
+            (isMetricBase $ simpleMetric (DoubleValue 52.13) Gigabyte   ) @?= False
+        it "correctly converts metrics to use base SI units" $ do
+            let metrics = [simpleMetric UnknownValue Second, simpleMetric (DoubleValue 123) Second, simpleMetric (DoubleValue 0.5) Kilobyte]
+            let converted = map convertMetricToBase metrics
+            let expectedValues = [UnknownValue, DoubleValue 123, DoubleValue 500]
+            let expectedUOMs = [Second, Second, Byte]
+            let (values, uoms) = unzip $ map (\x -> (metricValue x, metricUOM x)) converted
+            values @?= expectedValues
+            uoms   @?= expectedUOMs
+
   where
     good (Left _) = False
     good (Right _) = True
+    simpleMetric mValue uom = Metric mValue uom NoThreshold NoThreshold NoThreshold NoThreshold
+    testStrings = ["s",    "ms",       "us",         "",       "%",     "B",  "KB",     "MB",     "GB",     "TB",     "c",     "x",        "maryhadalittlelamb"] 
+    testUOMs = [Second, Millisecond, Microsecond, NullUnit, Percent, Byte, Kilobyte, Megabyte, Gigabyte, Terabyte, Counter, UnknownUOM, UnknownUOM]
 
 main :: IO ()
 main = hspec suite
