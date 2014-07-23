@@ -27,7 +27,8 @@ module Data.Nagios.Perfdata.Metric(
     metricValueDefault,
     unknownMetricValue,
     isMetricBase,
-    convertMetricToBase
+    convertMetricToBase,
+    convertPerfdataToBase
 ) where
 
 import Data.Nagios.Perfdata.Error
@@ -38,8 +39,6 @@ import qualified Data.ByteString as S
 import Control.Monad
 import Control.Applicative
 import Data.Attoparsec.ByteString.Char8
-
-
 
 -- |Value of a performance metric. We may lose some data converting 
 -- to doubles here; this may change in the future.
@@ -164,6 +163,9 @@ convertMetricToBase m@Metric{..} = m{metricValue = v, metricUOM = uom}
 
 isMetricBase :: Metric -> Bool
 isMetricBase Metric{..} = metricUOM == uomToBase metricUOM
+
+convertPerfdataToBase :: Perfdata -> Perfdata
+convertPerfdataToBase p@Perfdata{..} = p{perfdataMetrics = map (\(s, m) -> (s, convertMetricToBase m)) perfdataMetrics}
 
 -- |The part of the check result that's specific to service checks, 
 -- and doesn't appear in host checks.
