@@ -25,7 +25,10 @@ module Data.Nagios.Perfdata.Metric(
     Threshold(..),
     perfdataServiceDescription,
     metricValueDefault,
-    unknownMetricValue
+    unknownMetricValue,
+    isMetricBase,
+    convertMetricToBase,
+    convertPerfdataToBase
 ) where
 
 import Data.Nagios.Perfdata.Error
@@ -39,7 +42,7 @@ import Data.Attoparsec.ByteString.Char8
 
 -- |Value of a performance metric. We may lose some data converting 
 -- to doubles here; this may change in the future.
-data MetricValue = DoubleValue Double | UnknownValue deriving (Show)
+data MetricValue = DoubleValue Double | UnknownValue deriving (Show, Eq)
 
 -- |Value of a min/max/warn/crit threshold, subject to the same 
 -- constraints as MetricValue.
@@ -71,21 +74,98 @@ type MetricList = [(String, Metric)]
 
 -- |Nagios unit of measurement. NullUnit is an empty string in the 
 -- check result; UnknownUOM indicates a failure to parse.
-data UOM = Second | Millisecond | Microsecond | Percent | Byte | Kilobyte | Megabyte | Terabyte | Counter | NullUnit | UnknownUOM
-    deriving (Show)
+data UOM = Second | Millisecond | Microsecond | Percent | Byte | Kilobyte | Megabyte | Gigabyte | Terabyte | Counter | NullUnit | UnknownUOM
+    deriving (Eq)
+
+instance Show UOM where
+    show Second      = "s"
+    show Percent     = "%"
+    show Byte        = "B"
+    show Counter     = "c"
+    show NullUnit    = ""
+    show UnknownUOM  = "?"
+    show uom         = (show $ uomToPrefix uom) ++ (show $ uomToBase uom)
 
 uomFromString :: String -> UOM
-uomFromString "s" = Second 
+uomFromString "s"  = Second 
 uomFromString "ms" = Millisecond
 uomFromString "us" = Microsecond
-uomFromString "%" = Percent
-uomFromString "b" = Byte
-uomFromString "kb" = Kilobyte
-uomFromString "mb" = Megabyte
-uomFromString "tb" = Terabyte
-uomFromString "c" = Counter
-uomFromString "" = NullUnit
-uomFromString _ = UnknownUOM
+uomFromString "%"  = Percent
+uomFromString "B"  = Byte
+uomFromString "KB" = Kilobyte
+uomFromString "MB" = Megabyte
+uomFromString "GB" = Gigabyte
+uomFromString "TB" = Terabyte
+uomFromString "c"  = Counter
+uomFromString ""   = NullUnit
+uomFromString _    = UnknownUOM
+
+data Prefix = Base | Milli | Micro | Kilo | Mega | Giga | Tera
+    deriving (Eq)
+
+instance Show Prefix where
+    show Base  = ""
+    show Milli = "m"
+    show Micro = "u"
+    show Kilo  = "K"
+    show Mega  = "M"
+    show Giga  = "G"
+    show Tera  = "T"
+
+uomToPrefix :: UOM -> Prefix
+uomToPrefix Second      = Base
+uomToPrefix Millisecond = Milli
+uomToPrefix Microsecond = Micro
+uomToPrefix Percent     = Base
+uomToPrefix Byte        = Base
+uomToPrefix Kilobyte    = Kilo
+uomToPrefix Megabyte    = Mega
+uomToPrefix Gigabyte    = Giga
+uomToPrefix Terabyte    = Tera
+uomToPrefix Counter     = Base
+uomToPrefix NullUnit    = Base
+uomToPrefix UnknownUOM  = Base
+
+uomToBase :: UOM -> UOM
+uomToBase Second      = Second
+uomToBase Millisecond = Second
+uomToBase Microsecond = Second
+uomToBase Percent     = Percent
+uomToBase Byte        = Byte
+uomToBase Kilobyte    = Byte
+uomToBase Megabyte    = Byte
+uomToBase Gigabyte    = Byte
+uomToBase Terabyte    = Byte
+uomToBase Counter     = Counter
+uomToBase NullUnit    = NullUnit
+uomToBase UnknownUOM  = UnknownUOM
+
+prefixToScale :: Prefix -> Double
+prefixToScale Base  = 1
+prefixToScale Milli = 0.001
+prefixToScale Micro = 0.000001
+prefixToScale Kilo  = 1000
+prefixToScale Mega  = 1000000
+prefixToScale Giga  = 1000000000
+prefixToScale Tera  = 1000000000000
+
+uomToScale :: UOM -> Double
+uomToScale = prefixToScale . uomToPrefix
+
+convertUnitToBase :: MetricValue -> UOM -> (MetricValue, UOM)
+convertUnitToBase UnknownValue uom = (UnknownValue, uom)
+convertUnitToBase (DoubleValue v) uom = (DoubleValue $ uomToScale uom * v, uomToBase uom)
+
+convertMetricToBase :: Metric -> Metric
+convertMetricToBase m@Metric{..} = m{metricValue = v, metricUOM = uom}
+    where
+        (v, uom) = convertUnitToBase metricValue metricUOM
+
+isMetricBase :: Metric -> Bool
+isMetricBase Metric{..} = metricUOM == uomToBase metricUOM
+
+convertPerfdataToBase :: Perfdata -> Perfdata
+convertPerfdataToBase p@Perfdata{..} = p{perfdataMetrics = map (\(s, m) -> (s, convertMetricToBase m)) perfdataMetrics}
 
 -- |The part of the check result that's specific to service checks, 
 -- and doesn't appear in host checks.
