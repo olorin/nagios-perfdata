@@ -35,6 +35,7 @@ import Data.Nagios.Perfdata.Error
 
 import Prelude hiding (takeWhile)
 import Data.Int
+import Data.Bifunctor(second)
 import qualified Data.ByteString as S
 import Control.Monad
 import Control.Applicative
@@ -84,7 +85,7 @@ instance Show UOM where
     show Counter     = "c"
     show NullUnit    = ""
     show UnknownUOM  = "?"
-    show uom         = (show $ uomToPrefix uom) ++ (show $ uomToBase uom)
+    show uom         = show (uomToPrefix uom) ++ show (uomToBase uom)
 
 uomFromString :: String -> UOM
 uomFromString "s"  = Second 
@@ -165,7 +166,7 @@ isMetricBase :: Metric -> Bool
 isMetricBase Metric{..} = metricUOM == uomToBase metricUOM
 
 convertPerfdataToBase :: Perfdata -> Perfdata
-convertPerfdataToBase p@Perfdata{..} = p{perfdataMetrics = map (\(s, m) -> (s, convertMetricToBase m)) perfdataMetrics}
+convertPerfdataToBase p@Perfdata{..} = p{perfdataMetrics = map (second convertMetricToBase ) perfdataMetrics}
 
 -- |The part of the check result that's specific to service checks, 
 -- and doesn't appear in host checks.
@@ -208,8 +209,8 @@ perfdataServiceDescription datum = case perfdataType datum of
     Host -> "host"
     Service serviceData -> serviceDescription serviceData
 
-uom :: Parser UOM
-uom = liftM uomFromString . option "" $ many (satisfy uomChar)
+uomParser :: Parser UOM
+uomParser = liftM uomFromString . option "" $ many (satisfy uomChar)
   where
     uomChar = inClass "A-Za-z%"
 
@@ -237,7 +238,7 @@ metric = do
     name <- metricName
     void $ char8 '='
     m    <- Metric `fmap` value <*>
-                          uom <*>
+                          uomParser <*>
                           threshold <*>
                           threshold <*>
                           threshold <*>
