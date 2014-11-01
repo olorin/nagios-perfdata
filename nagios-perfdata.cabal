@@ -21,7 +21,7 @@ library
                      Data.Nagios.Perfdata.Error,
                      Data.Nagios.Perfdata.GearmanResult,
                      Data.Nagios.Perfdata.Template
-  build-depends:     base >=4.6,
+  build-depends:     base >=4.6 && <= 5,
                      bytestring, 
                      mtl,
                      containers,
