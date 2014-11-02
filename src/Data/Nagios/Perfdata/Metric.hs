@@ -1,13 +1,13 @@
 -- This file is part of nagios-perfdata.
 --
 -- Copyright 2014 Anchor Systems Pty Ltd and others.
--- 
+--
 -- The code in this file, and the program it is a part of, is made
 -- available to you by its authors as open source software: you can
 -- redistribute it and/or modify it under the terms of the BSD license.
 
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RecordWildCards   #-}
 
 module Data.Nagios.Perfdata.Metric(
     Perfdata(..),
@@ -31,21 +31,21 @@ module Data.Nagios.Perfdata.Metric(
     convertPerfdataToBase
 ) where
 
-import Data.Nagios.Perfdata.Error
+import           Data.Nagios.Perfdata.Error
 
-import Prelude hiding (takeWhile)
-import Data.Int
-import Data.Bifunctor(second)
-import qualified Data.ByteString as S
-import Control.Monad
-import Control.Applicative
-import Data.Attoparsec.ByteString.Char8
+import           Control.Applicative
+import           Control.Monad
+import           Data.Attoparsec.ByteString.Char8
+import           Data.Bifunctor                   (second)
+import qualified Data.ByteString                  as S
+import           Data.Int
+import           Prelude                          hiding (takeWhile)
 
--- |Value of a performance metric. We may lose some data converting 
+-- |Value of a performance metric. We may lose some data converting
 -- to doubles here; this may change in the future.
 data MetricValue = DoubleValue Double | UnknownValue deriving (Show, Eq)
 
--- |Value of a min/max/warn/crit threshold, subject to the same 
+-- |Value of a min/max/warn/crit threshold, subject to the same
 -- constraints as MetricValue.
 data Threshold = DoubleThreshold Double | NoThreshold deriving (Show)
 
@@ -54,10 +54,10 @@ data Threshold = DoubleThreshold Double | NoThreshold deriving (Show)
 data Metric = Metric {
     metricValue :: MetricValue,
     metricUOM   :: UOM,
-    warnValue :: Threshold,
-    critValue :: Threshold,
-    minValue :: Threshold,
-    maxValue :: Threshold
+    warnValue   :: Threshold,
+    critValue   :: Threshold,
+    minValue    :: Threshold,
+    maxValue    :: Threshold
 } deriving (Show)
 
 metricValueDefault :: Metric -> Double -> Double
@@ -73,7 +73,7 @@ unknownMetricValue m = case metricValue m of
 -- |List of metrics by metric name.
 type MetricList = [(String, Metric)]
 
--- |Nagios unit of measurement. NullUnit is an empty string in the 
+-- |Nagios unit of measurement. NullUnit is an empty string in the
 -- check result; UnknownUOM indicates a failure to parse.
 data UOM = Second | Millisecond | Microsecond | Percent | Byte | Kilobyte | Megabyte | Gigabyte | Terabyte | Counter | NullUnit | UnknownUOM
     deriving (Eq)
@@ -88,7 +88,7 @@ instance Show UOM where
     show uom         = show (uomToPrefix uom) ++ show (uomToBase uom)
 
 uomFromString :: String -> UOM
-uomFromString "s"  = Second 
+uomFromString "s"  = Second
 uomFromString "ms" = Millisecond
 uomFromString "us" = Microsecond
 uomFromString "%"  = Percent
@@ -168,7 +168,7 @@ isMetricBase Metric{..} = metricUOM == uomToBase metricUOM
 convertPerfdataToBase :: Perfdata -> Perfdata
 convertPerfdataToBase p@Perfdata{..} = p{perfdataMetrics = map (second convertMetricToBase ) perfdataMetrics}
 
--- |The part of the check result that's specific to service checks, 
+-- |The part of the check result that's specific to service checks,
 -- and doesn't appear in host checks.
 data ServicePerfdata = ServicePerfdata {
     serviceDescription :: S.ByteString,
@@ -194,12 +194,12 @@ parseReturnState "CRITICAL" = Just CriticalState
 parseReturnState "UNKNOWN" = Just UnknownState
 parseReturnState _ = Nothing
 
--- |Encapsulates all the data in a check result that's relevant to 
--- metrics (we throw away things like the state type of HARD/SOFT). 
+-- |Encapsulates all the data in a check result that's relevant to
+-- metrics (we throw away things like the state type of HARD/SOFT).
 data Perfdata = Perfdata {
-    perfdataType :: HostOrService,
+    perfdataType      :: HostOrService,
     perfdataTimestamp :: Int64,
-    perfdataHostname :: String,
+    perfdataHostname  :: String,
     perfdataHostState :: Maybe S.ByteString,
     perfdataMetrics   :: MetricList
 } deriving (Show)
@@ -242,14 +242,14 @@ metric = do
                           threshold <*>
                           threshold <*>
                           threshold <*>
-                          threshold 
+                          threshold
     return (name, m)
 
 metricLine :: Parser MetricList
 metricLine = many (metric <* (skipMany (char8 ';') <* skipSpace))
 
--- |Parse the component of the check output which contains the 
--- performance metrics (HOSTPERFDATA or SERVICEPERFDATA). 
+-- |Parse the component of the check output which contains the
+-- performance metrics (HOSTPERFDATA or SERVICEPERFDATA).
 parseMetricString :: S.ByteString -> Either ParserError MetricList
 parseMetricString = completeParse . parse metricLine
   where
