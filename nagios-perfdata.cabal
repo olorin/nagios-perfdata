@@ -14,6 +14,12 @@ category:            Data
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
+stability:           experimental
+tested-with:         GHC == 7.8.3
+
+source-repository    head
+  type:              git
+  location:          git@github.com:anchor/vaultaire.git
 
 library
   exposed-modules:   Data.Nagios.Perfdata
