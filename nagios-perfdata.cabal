@@ -12,7 +12,8 @@ maintainer:          sio@tesser.org
 copyright:           2014 Anchor Systems
 category:            Data
 build-type:          Simple
-extra-source-files:  README.md
+extra-source-files:  README.md,
+                     CHANGELOG.md
 cabal-version:       >=1.10
 stability:           experimental
 tested-with:         GHC == 7.8.3
