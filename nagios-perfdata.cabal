@@ -20,7 +20,7 @@ tested-with:         GHC == 7.8.3
 
 source-repository    head
   type:              git
-  location:          git@github.com:anchor/vaultaire.git
+  location:          git@github.com:anchor/nagios-perfdata.git
 
 library
   exposed-modules:   Data.Nagios.Perfdata
